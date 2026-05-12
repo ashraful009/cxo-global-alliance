@@ -19,14 +19,11 @@ connectDB();
 connectCloudinary();
 
 const corsOptions = {
-  origin: true,            // Reflect the request origin (allows all origins)
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Handle CORS preflight (OPTIONS) for ALL routes BEFORE any auth middleware
-app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -42,6 +39,12 @@ app.use('/api/settings',      siteSettingsRoutes);
 app.get('/', (req, res) => res.send('API is running...'));
 
 app.use((err, req, res, next) => {
+  // Always stamp CORS headers on error responses — Vercel serverless
+  // can strip headers set by earlier middleware on non-2xx responses.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode).json({
     message: err.message,
