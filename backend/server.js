@@ -17,24 +17,12 @@ const app = express();
 
 connectCloudinary();
 
-const corsOptions = {
+app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
+}));
 app.use(express.json());
-
-// Connect to MongoDB on each request (safe for serverless — cached after first call)
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
 
 app.use('/api/auth',          authRoutes);
 app.use('/api/events',        eventRoutes);
@@ -48,12 +36,6 @@ app.use('/api/settings',      siteSettingsRoutes);
 app.get('/', (req, res) => res.send('API is running...'));
 
 app.use((err, req, res, next) => {
-  // Always stamp CORS headers on error responses — Vercel serverless
-  // can strip headers set by earlier middleware on non-2xx responses.
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode).json({
     message: err.message,
@@ -61,13 +43,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Only call app.listen() in local development.
-// On Vercel (serverless), we export the app — Vercel handles the HTTP layer.
-if (!process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () =>
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
-  );
-}
+const PORT = process.env.PORT || 5000;
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
+  })
+  .catch((err) => {
+    console.error('MongoDB connection failed:', err.message);
+    process.exit(1);
+  });
 
 module.exports = app;
