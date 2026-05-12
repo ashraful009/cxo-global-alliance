@@ -15,7 +15,6 @@ const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
 
 const app = express();
 
-connectDB();
 connectCloudinary();
 
 const corsOptions = {
@@ -26,6 +25,16 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Connect to MongoDB on each request (safe for serverless — cached after first call)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use('/api/auth',          authRoutes);
 app.use('/api/events',        eventRoutes);
