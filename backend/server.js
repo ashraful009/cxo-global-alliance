@@ -18,19 +18,16 @@ const app = express();
 connectDB();
 connectCloudinary();
 
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',')
-  : ['http://localhost:5173'];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (e.g., curl, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
-  },
+const corsOptions = {
+  origin: true,            // Reflect the request origin (allows all origins)
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Handle CORS preflight (OPTIONS) for ALL routes BEFORE any auth middleware
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/auth',          authRoutes);
